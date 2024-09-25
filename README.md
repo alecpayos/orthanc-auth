@@ -1,73 +1,58 @@
-# Orthanc DICOM Imaging Exploration
+# DICOM Authentication Server
 
-This project integrates [Orthanc](https://www.orthanc-server.com/), a lightweight, open-source DICOM server, with an authentication server built using Node.js (Express) and a MySQL server for data storage. Additionally, it includes PhpMyAdmin for easy management of the MySQL database.
+This is a simple Node.js application for handling authentication requests related to DICOM (Digital Imaging and Communications in Medicine) data. The server is designed to authenticate requests based on a provided token.
 
 ## Table of Contents
-- [Orthanc DICOM Imaging Exploration](#orthanc-dicom-imaging-exploration)
+- [DICOM Authentication Server](#dicom-authentication-server)
   - [Table of Contents](#table-of-contents)
-  - [Features](#features)
-  - [Prerequisites](#prerequisites)
   - [Installation](#installation)
-  - [Configuration](#configuration)
   - [Usage](#usage)
-  - [Accessing PhpMyAdmin](#accessing-phpmyadmin)
-  - [Docker Compose Structure](#docker-compose-structure)
-
-## Features
-
-- **Orthanc DICOM Server**: A lightweight and open-source DICOM server accessible at http://localhost:8042.
-- **Authorization Server**: A custom authentication server for Orthanc running at http://localhost:8080.
-- **MySQL Server**: A MySQL server for data storage.
-- **PhpMyAdmin**: Web-based MySQL management tool accessible at http://localhost:8081.
-
-## Prerequisites
-
-- [Docker](https://www.docker.com/get-started)
+  - [Authentication](#authentication)
+  - [Docker](#docker)
 
 ## Installation
 
-1. Clone this repository:
-    ```bash
-    git clone <repository-url>
-    cd <repository-directory>
-    ```
-2. Create a .env file in the root directory with the following environment variables:
-    ```
-    DB_HOST=mysql-server
-    DB_DATABASE=demo
-    DB_USERNAME=demo
-    DB_PASSWORD=demo
-    ```
-3. Run the Docker Compose command to build and start the containers:
-    ```
-    docker-compose up -d
-    ```
+To install the dependencies, use the following command:
 
-## Configuration
-
-Orthanc Configuration: Modify orthanc-config/plugins.json to suit your Orthanc server configuration.
+```bash
+npm install
+```
 
 ## Usage
+Run the server using the following command:
 
-- The Orthanc DICOM server is accessible at http://localhost:8042.
-- The Orthanc Authorization Server is running at http://localhost:8080.
-- PhpMyAdmin is accessible at http://localhost:8081.
-- Post dicom file using CURL, execute:
-    ```
-    curl -v -X POST -H 'Token: demo' --data-binary @image-00000.dcm http://localhost:8042/instances
-    ```
-- Get study metadata via DICOM-WEB plugin using CURL, execute:
-    ```
-    curl -v -H 'Token: demo' -H 'Content-type: application/json' http://localhost:8042/dicom-web/studies/1.2.826.0.1.3680043.8.1055.1.20170626100116652.756727516.6235062/metadata
-    ```
+```
+npm start
+```
 
-## Accessing PhpMyAdmin
+The server will be running on http://0.0.0.0:8080.
 
-PhpMyAdmin is configured to connect to the MySQL server. Access it by visiting http://localhost:8081 in your browser. Use the credentials defined in your .env file.
+## Authentication
 
-## Docker Compose Structure
-- Orthanc: DICOM server.
-- Orthanc Authorization Server: Custom authentication server for Orthanc.
-- Orthanc MySQL Server: MySQL server for data storage.
-- Orthanc PhpMyAdmin: Web-based MySQL management tool.
+The server exposes an authentication endpoint at /auth that accepts POST requests. The authentication process is based on a provided token in the request body. If the token matches the expected value ("demo" in this case), the operation is allowed; otherwise, access is denied.
 
+Example request:
+
+```
+{
+  "token-value": "demo"
+}
+```
+
+Example response:
+
+```
+{
+  "granted": true,
+  "validity": 0
+}
+```
+
+## Docker
+
+This application can also be run using Docker. Use the following commands to build and run the Docker image:
+
+```
+docker build -t dicom-auth-server .
+docker run -p 8080:8080 dicom-auth-server
+```

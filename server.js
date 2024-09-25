@@ -1,9 +1,18 @@
 "use strict";
+
+require('dotenv').config();
 const { Readable } = require("stream");
+const Log = require('./logger');
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const app = express();
+
+const {
+    PORT,
+    HOST,
+    ORTHANC_URL,
+} = process.env;
 
 // Enable CORS with options for viewer preflight requests
 app.use(cors({
@@ -16,27 +25,29 @@ app.use(cors({
 // Parse application/json
 app.use(bodyParser.json());
 
-// Constants
-const PORT = 8080;
-const HOST = "localhost";
-const ORTHANC_URL = "https://orthanc.getdentalray.com/dicom-web";
-
 app.get('/*', async (request, response) => {
-    const request_body = request.body;
+    const ip = request.headers['x-forwarded-for'] || request.socket.remoteAddress || undefined;
+    const browser = request.headers['user-agent'] || undefined;
+    const requestBody = request.body || undefined;
+    
+    Log.props = { ip, browser };
+
     const response_body = {
         granted: true,
         validity: 0,
     };
-
+    
     let token = request.headers.authorization;
 
-    // Remove "bearer " part of the token
+    // Remove "Bearer " part of the token
     if (token) {
         if (token.startsWith("bearer ") || token.startsWith("Bearer ")) {
             token = token.slice(7);
         }
     }
     else {
+        Log.error("403 User access forbidden: No token");
+
         return response.status(403).json({ message: 'Forbidden: You do not have permission to access this resource.' });
     }
 
@@ -50,20 +61,25 @@ app.get('/*', async (request, response) => {
             response.setHeader('Content-Type', orthancResponse.headers.get('content-type') || 'application/dicom');
             response.setHeader('Content-Length', orthancResponse.headers.get('content-length'));
 
+            Log.info("Successfully fetched viewer dicom image data");
+
             // Stream the file to the response
             return Readable.fromWeb(orthancResponse.body).pipe(response)
         }
 
         const parsedOrthancRes = await orthancResponse.json();
+        Log.info("Successfully fetched viewer non-dicom image data");
 
         return response.send(JSON.stringify(parsedOrthancRes));
     }
     else {
         response_body.granted = false;
-        console.log("[FAIL] operation not allowed!");
+        Log.error("[FAIL] Operation not allowed");
+
+        return;
     }
 });
 
 app.listen(PORT, HOST, () => {
-    console.log(`[OK] Running on http://${HOST}:${PORT}`);
+    Log.info(`Started server on: http://${HOST}:${PORT}`);
 });
