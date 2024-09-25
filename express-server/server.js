@@ -1,40 +1,69 @@
 "use strict";
+const { Readable } = require("stream");
 const express = require("express");
-var bodyParser = require("body-parser");
+const cors = require("cors");
+const bodyParser = require("body-parser");
 const app = express();
-// parse application/json
+
+// Enable CORS with options for viewer preflight requests
+app.use(cors({
+    origin: 'http://localhost:3000', // Replace with your allowed origin
+    methods: ['GET', 'POST', 'OPTIONS'], // Allowed methods
+    allowedHeaders: ["Authorization", "Content-Type"], // Allowed headers
+    credentials: true,
+}));
+
+// Parse application/json
 app.use(bodyParser.json());
+
 // Constants
 const PORT = 8080;
-const HOST = "0.0.0.0";
-app.post("/auth", (request, response) => {
+const HOST = "localhost";
+const ORTHANC_URL = "https://orthanc.getdentalray.com/dicom-web";
+
+app.get('/*', async (request, response) => {
     const request_body = request.body;
     const response_body = {
         granted: true,
         validity: 0,
     };
-    // Check if token exists
-    if (!request_body.hasOwnProperty("token-value")) {
-        response_body.granted = false;
-        console.log("[FAIL] No token provided!");
-        response.send(JSON.stringify(response_body));
-        return;
-    }
-    let token = request_body["token-value"];
+
+    let token = request.headers.authorization;
+
     // Remove "bearer " part of the token
-    if (token.startsWith("bearer ") || token.startsWith("Bearer ")) {
-        token = token.slice(7);
+    if (token) {
+        if (token.startsWith("bearer ") || token.startsWith("Bearer ")) {
+            token = token.slice(7);
+        }
     }
-	// check if token is "demo"
-    if (token != "demo") {
+    else {
+        return response.status(403).json({ message: 'Forbidden: You do not have permission to access this resource.' });
+    }
+
+	// Check if token is "demo" (For testing purposes)
+    if (token == "demo") {
+        const orthancRerouteUrl = ORTHANC_URL + request.url;
+        const orthancResponse = await fetch(orthancRerouteUrl);
+
+        if (request.url.includes('frames')) {
+            // Set the appropriate headers
+            response.setHeader('Content-Type', orthancResponse.headers.get('content-type') || 'application/dicom');
+            response.setHeader('Content-Length', orthancResponse.headers.get('content-length'));
+
+            // Stream the file to the response
+            return Readable.fromWeb(orthancResponse.body).pipe(response)
+        }
+
+        const parsedOrthancRes = await orthancResponse.json();
+
+        return response.send(JSON.stringify(parsedOrthancRes));
+    }
+    else {
         response_body.granted = false;
         console.log("[FAIL] operation not allowed!");
-    } else {
-        console.log("[OK] operation allowed!");
-        console.log("\n --------------------------- \n");
     }
-    response.send(JSON.stringify(response_body));
 });
+
 app.listen(PORT, HOST, () => {
     console.log(`[OK] Running on http://${HOST}:${PORT}`);
 });
