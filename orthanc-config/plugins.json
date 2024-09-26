@@ -23,7 +23,7 @@
       "production-dicom-web" : {
         "Url" : "http://localhost:8042/dicom-web/",
         "HttpHeaders": {
-          "Authorization" : "Bearer demo"
+          
         }
       }
     },
@@ -61,9 +61,9 @@
     "Host" : "mysql-server",
     "Port" : 3306,
     "UnixSocket" : "/var/run/mysqld/mysqld.sock",
-    "Database" : "orthanc",
-    "Username" : "orthanc",
-    "Password" : "orthanc",
+    "Database" : "demo",
+    "Username" : "demo",
+    "Password" : "demo",
     "EnableSsl" : false,
     "SslVerifyServerCertificates": true,
     "SslCACertificates": "",
@@ -73,7 +73,7 @@
     "IndexConnectionsCount" : 1
   },
   "Authorization": {
-    "WebService": "http://authorization-server:8080/auth",
+    "WebServiceRootUrl": "http://authorization-server:8080",
     "TokenHttpHeaders": [
       "Authorization"
     ],
@@ -107,6 +107,12 @@
       "patient",
       "series",
       "instances"
+    ],
+    "Permissions" : [
+      ["post", "^/auth/tokens/decode$", ""],
+      ["post", "^/tools/lookup$", ""],
+      ["post", "^/tools/find$", "all|view"],
+      ["get" , "^/(patients|studies|series|instances)/([a-f0-9-]+)$", "all|view"]
     ]
 
   },

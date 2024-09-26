@@ -29,6 +29,18 @@ services:
     networks:
       - "orthanc-network"
 
+  nginx:
+    container_name: nginx
+    image: nginx:latest
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    ports:
+      - "80:80"
+    depends_on:
+      - orthanc
+    networks:
+      - "orthanc-network"
+
   mysql-server:
     container_name: mysql-server
     image: mysql:8.0
